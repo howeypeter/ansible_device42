@@ -1,4 +1,3 @@
-from StringIO import StringIO
 import requests
 import codecs
 import base64
@@ -10,6 +9,10 @@ try:
     import json
 except ImportError:
     import simplejson as json
+try:
+    from StringIO import StringIO ## for Python 2
+except ImportError:
+    from io import StringIO ## for Python 3
 
 def get_conf():
     try:
@@ -21,27 +24,27 @@ def get_conf():
             requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
         if 'D42_URL' not in os.environ:
-            print 'Please set D42_URL environ.'
+            print('Please set D42_URL environ.')
             sys.exit()
 
         if 'D42_USER' not in os.environ:
-            print 'Please set D42_USER environ.'
+            print('Please set D42_USER environ.')
             sys.exit()
 
         if 'D42_PWD' not in os.environ:
-            print 'Please set D42_PWD environ.'
+            print('Please set D42_PWD environ.')
             sys.exit()
 
         if 'GROUP_BY_QUERY' not in os.environ:
-            print 'Please set GROUP_BY_QUERY environ.'
+            print('Please set GROUP_BY_QUERY environ.')
             sys.exit()
 
         if 'GROUP_BY_FIELD' not in os.environ:
-            print 'Please set GROUP_BY_FIELD environ.'
+            print('Please set GROUP_BY_FIELD environ.')
             sys.exit()
 
         if 'GROUP_BY_REFERENCE_FIELD' not in os.environ:
-            print 'Please set GROUP_BY_REFERENCE_FIELD environ.'
+            print('Please set GROUP_BY_REFERENCE_FIELD environ.')
             sys.exit()
 
         conf = {
@@ -65,8 +68,13 @@ class Device42:
         self.query = self.conf['GROUP_BY_QUERY']
 
     def fetcher(self, url, query):
+        ben = self.username + ':' + self.password
+        ben_bytes = ben.encode('ascii')
+        base64_bytes = base64.b64encode(ben_bytes) 
+        base64_message = base64_bytes.decode('ascii')
+
         headers = {
-            'Authorization': 'Basic ' + base64.b64encode(self.username + ':' + self.password),
+            'Authorization': 'Basic ' + str(base64_message),
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
@@ -82,7 +90,12 @@ class Device42:
 
     @staticmethod
     def get_list_from_csv(text):
-        f = StringIO(text.encode("utf-8", "replace"))
+        try:
+            f = StringIO(text.encode("utf-8", "replace"))
+        except:
+            text = text.encode("utf-8", "replace")
+            text = text.decode("utf-8")
+            f = StringIO(text)
         list_ = []
         dict_reader = csv.DictReader(f, quotechar='"', delimiter=',', quoting=csv.QUOTE_ALL, skipinitialspace=True, dialect='excel')
         for item in dict_reader:
@@ -110,7 +123,7 @@ class Ansible:
                         groups[object_[self.conf['GROUP_BY_FIELD']]] = []
                     groups[object_[self.conf['GROUP_BY_FIELD']]].append(object_[self.conf['GROUP_BY_REFERENCE_FIELD']])
             except Exception as e:
-                print object_
+                print(object_)
                 sys.exit()
         return groups
 
